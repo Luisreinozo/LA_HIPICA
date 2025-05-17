@@ -1,11 +1,9 @@
 -- Eliminar la base de datos si existe
---DROP DATABASE IF EXISTS LRC_Hipica;
+DROP DATABASE IF EXISTS LRC_Hipica;
 
 -- Crear la base de datos
---CREATE DATABASE LRC_Hipica;
-
--- Seleccionar la base de datos
---USE LRC_Hipica;
+CREATE DATABASE LRC_Hipica CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE LRC_Hipica;
 
 -- Tabla CCAA
 CREATE TABLE CCAA (
@@ -120,7 +118,7 @@ CREATE TABLE Cobros_pupilaje (
     FOREIGN KEY (ID_Pupilaje) REFERENCES Pupilaje(ID_Pupilaje)
 );
 
--- Crear la tabla Nominas
+-- Tabla Nominas
 CREATE TABLE Nominas (
     ID_Nomina INT AUTO_INCREMENT PRIMARY KEY,
     ID_Empleado INT,
@@ -132,15 +130,15 @@ CREATE TABLE Nominas (
     FOREIGN KEY (ID_Empleado) REFERENCES Empleados(ID_Empleado)
 );
 
--- Insertar datos en CCAA
+-- 2. Insertar datos en CCAA
 INSERT INTO CCAA (Nombre) VALUES ('Galicia');
 
--- Insertar Provincias
-INSERT INTO Provincias (Nombre, IDCCAA) VALUES ('A Coruna', 1);
+-- 3. Insertar Provincias
+INSERT INTO Provincias (Nombre, IDCCAA) VALUES ('A Coruña', 1);
 
--- Insertar Localidades
-INSERT INTO Localidades (Nombre, IDProvincia) VALUES 
-('A Coruna', 1),
+-- 4. Insertar Localidades
+INSERT INTO Localidades (Nombre, IDProvincia) VALUES
+('A Coruña', 1),
 ('Arteixo', 1),
 ('Oleiros', 1),
 ('Culleredo', 1),
@@ -148,305 +146,180 @@ INSERT INTO Localidades (Nombre, IDProvincia) VALUES
 ('Cambre', 1),
 ('Betanzos', 1);
 
--- Generar 200 clientes
-DELIMITER //
-CREATE PROCEDURE GenerarClientes()
+-- 5. Generar 200 clientes
+DELIMITER $$
+CREATE PROCEDURE insertar_clientes()
 BEGIN
-    DECLARE i INT DEFAULT 1;
-    WHILE i <= 200 DO
-        INSERT INTO Clientes (DNI, Nombre, Direccion, IDLocalidad, Email, Movil, IBAN, F_alta, F_baja, Tipo)
-        VALUES (
-            CONCAT('DNI', LPAD(i, 8, '0')),
-            CONCAT('Cliente', i),
-            CONCAT('Calle Cliente ', i, ' Nº', FLOOR(RAND()*100 + 1)),
-            FLOOR(RAND()*7 + 1),
-            CONCAT('cliente', i, '@example.com'),
-            CONCAT('6', LPAD(i, 8, '0')),
-            CONCAT('ES', LPAD(i, 20, '0')),
-            DATE_SUB('2020-01-01', INTERVAL FLOOR(RAND()*1825) DAY),
-            CASE WHEN i % 20 = 0 THEN DATE_SUB(CURDATE(), INTERVAL FLOOR(RAND()*365) DAY) ELSE NULL END,
-            CASE 
-                WHEN i % 3 = 0 THEN 'Estudiante' 
-                WHEN i % 3 = 1 THEN 'Propietario' 
-                ELSE 'Ambos' 
-            END
-        );
-        SET i = i + 1;
-    END WHILE;
-END //
+  DECLARE i INT DEFAULT 1;
+  WHILE i <= 200 DO
+    INSERT INTO Clientes (DNI, Nombre, Direccion, IDLocalidad, Email, Movil, IBAN, F_alta, F_baja, Tipo)
+    VALUES (
+      CONCAT('DNI', LPAD(i, 8, '0')),
+      CONCAT('Cliente', i),
+      CONCAT('Calle Cliente ', i, ' Nº', FLOOR(RAND()*100 + 1)),
+      FLOOR(RAND()*7 + 1),
+      CONCAT('cliente', i, '@example.com'),
+      CONCAT('6', LPAD(i, 8, '0')),
+      CONCAT('ES', LPAD(i, 20, '0')),
+      DATE_SUB('2020-01-01', INTERVAL FLOOR(RAND()*1825) DAY),
+      IF(i % 20 = 0, DATE_SUB(CURDATE(), INTERVAL FLOOR(RAND()*365) DAY), NULL),
+      CASE 
+        WHEN i % 3 = 0 THEN 'Estudiante'
+        WHEN i % 3 = 1 THEN 'Propietario'
+        ELSE 'Ambos'
+      END
+    );
+    SET i = i + 1;
+  END WHILE;
+END$$
 DELIMITER ;
+CALL insertar_clientes();
+DROP PROCEDURE insertar_clientes;
 
-CALL GenerarClientes();
-DROP PROCEDURE GenerarClientes;
-
--- Generar 30 caballos
-DELIMITER //
-CREATE PROCEDURE GenerarCaballos()
+-- 6. Generar 30 caballos
+DELIMITER $$
+CREATE PROCEDURE insertar_caballos()
 BEGIN
-    DECLARE j INT DEFAULT 1;
-    DECLARE raza VARCHAR(50);
-    DECLARE razas_array VARCHAR(255) DEFAULT 'Pura Sangre,Arabe,Andaluz,Frison,Appaloosa,Mustang,Shire';
-
-    WHILE j <= 30 DO
-        -- Seleccionar una raza aleatoria
-        SET raza = ELT(FLOOR(RAND()*7 + 1), 'Pura Sangre', 'Arabe', 'Andaluz', 'Frison', 'Appaloosa', 'Mustang', 'Shire');
-
-        INSERT INTO Caballos (Nombre, Raza, Edad, ID_Cliente)
-        VALUES (
-            CONCAT('Caballo', j),
-            raza,
-            FLOOR(RAND()*15 + 3),
-            FLOOR(RAND()*200 + 1)
-        );
-        SET j = j + 1;
-    END WHILE;
-END //
+  DECLARE j INT DEFAULT 1;
+  DECLARE razas JSON;
+  SET razas = JSON_ARRAY('Pura Sangre', 'Árabe', 'Andaluz', 'Frisón', 'Appaloosa', 'Mustang', 'Shire');
+  WHILE j <= 30 DO
+    INSERT INTO Caballos (Nombre, Raza, Edad, ID_Cliente)
+    VALUES (
+      CONCAT('Caballo', j),
+      JSON_UNQUOTE(JSON_EXTRACT(razas, CONCAT('$[', FLOOR(RAND()*7), ']'))),
+      FLOOR(RAND()*15 + 3),
+      FLOOR(RAND()*200 + 1)
+    );
+    SET j = j + 1;
+  END WHILE;
+END$$
 DELIMITER ;
+CALL insertar_caballos();
+DROP PROCEDURE insertar_caballos;
 
-CALL GenerarCaballos();
-DROP PROCEDURE GenerarCaballos;
-
--- Generar empleados (5 Admin, 10 Profesores, 15 Cuidadores)
-DELIMITER //
-CREATE PROCEDURE GenerarEmpleados()
+-- 7. Generar empleados (5 Admin, 10 Profesores, 15 Cuidadores)
+DELIMITER $$
+CREATE PROCEDURE insertar_empleados()
 BEGIN
-    DECLARE i INT DEFAULT 1;
-    DECLARE tipo VARCHAR(50);
-    DECLARE salario DECIMAL(10, 2);
-    
-    WHILE i <= 30 DO
-        IF i <= 5 THEN
-            SET tipo = 'Administrativo';
-            SET salario = 1500.00;
-        ELSEIF i <= 15 THEN
-            SET tipo = 'Profesor';
-            SET salario = 1500.00;
-        ELSE
-            SET tipo = 'Cuidador';
-            SET salario = 1100.00;
-        END IF;
-        
-        INSERT INTO Empleados (Nombre, Direccion, IDLocalidad, DNI, Salario, Tipo)
-        VALUES (
-            CONCAT('Empleado', i),
-            CONCAT('Calle Empleado ', i),
-            FLOOR(RAND()*7 + 1),
-            CONCAT('E', LPAD(i, 7, '0')),
-            salario,
-            tipo
-        );
-        SET i = i + 1;
-    END WHILE;
-END //
+  DECLARE n INT DEFAULT 1;
+  WHILE n <= 30 DO
+    INSERT INTO Empleados (Nombre, Direccion, IDLocalidad, DNI, Salario, Tipo)
+    VALUES (
+      CONCAT('Empleado', n),
+      CONCAT('Calle Empleado ', n),
+      FLOOR(RAND()*7 + 1),
+      CONCAT('E', LPAD(n, 7, '0')),
+      CASE
+        WHEN n <= 5 THEN 1500.00
+        WHEN n <= 15 THEN 1500.00
+        ELSE 1100.00
+      END,
+      CASE
+        WHEN n <= 5 THEN 'Administrativo'
+        WHEN n <= 15 THEN 'Profesor'
+        ELSE 'Cuidador'
+      END
+    );
+    SET n = n + 1;
+  END WHILE;
+END$$
 DELIMITER ;
+CALL insertar_empleados();
+DROP PROCEDURE insertar_empleados;
 
-CALL GenerarEmpleados();
-DROP PROCEDURE GenerarEmpleados;
-
--- Insertar metodos de pago
-INSERT INTO Metodo_Pago (Metodo) VALUES ('Efectivo'), ('Tarjeta'), ('Transferencia');
-
--- Generar 1000 clases (solo Profesores)
-DELIMITER //
-CREATE PROCEDURE GenerarClases()
+-- 8. Generar 1000 clases (solo Profesores)
+DELIMITER $$
+CREATE PROCEDURE insertar_clases()
 BEGIN
-    DECLARE i INT DEFAULT 1;
-    DECLARE profesor_id INT;
-    DECLARE estudiante_id INT;
-    DECLARE fecha_inicio DATE;
-    
-    WHILE i <= 1000 DO
-        -- Seleccionar un profesor aleatorio
-        SELECT ID_Empleado INTO profesor_id
-        FROM Empleados
-        WHERE Tipo = 'Profesor'
-        ORDER BY RAND()
-        LIMIT 1;
-        
-        -- Seleccionar un estudiante aleatorio
-        SELECT ID_Cliente INTO estudiante_id
-        FROM Clientes
-        WHERE Tipo IN ('Estudiante', 'Ambos')
-        ORDER BY RAND()
-        LIMIT 1;
-        
-        -- Generar fecha aleatoria
-        SET fecha_inicio = DATE_ADD('2020-01-01', INTERVAL FLOOR(RAND() * 1825) DAY);
-        
-        INSERT INTO Clases (Estudiantes_ID_Cliente, Profesor_ID_Empleado, F_inicio, F_fin)
-        VALUES (
-            estudiante_id,
-            profesor_id,
-            fecha_inicio,
-            DATE_ADD(fecha_inicio, INTERVAL 2 HOUR)
-        );
-        
-        SET i = i + 1;
-    END WHILE;
-END //
+  DECLARE cnt INT DEFAULT 1;
+  DECLARE est INT;
+  DECLARE prof INT;
+  WHILE cnt <= 1000 DO
+    SET est = (SELECT ID_Cliente FROM Clientes WHERE Tipo IN ('Estudiante', 'Ambos') ORDER BY RAND() LIMIT 1);
+    SET prof = (SELECT ID_Empleado FROM Empleados WHERE Tipo='Profesor' ORDER BY RAND() LIMIT 1);
+    SET @f_ini = DATE_ADD('2020-01-01', INTERVAL FLOOR(RAND()*1825) DAY);
+    INSERT INTO Clases (Estudiantes_ID_Cliente, Profesor_ID_Empleado, F_inicio, F_fin)
+    VALUES (
+      est,
+      prof,
+      @f_ini,
+      DATE_ADD(@f_ini, INTERVAL 2 HOUR)
+    );
+    SET cnt = cnt + 1;
+  END WHILE;
+END$$
 DELIMITER ;
+CALL insertar_clases();
+DROP PROCEDURE insertar_clases;
 
-CALL GenerarClases();
-DROP PROCEDURE GenerarClases;
-
--- Generar 500 pupilajes
-DELIMITER //
-CREATE PROCEDURE GenerarPupilajes()
+-- 9. Generar 500 pupilajes
+DELIMITER $$
+CREATE PROCEDURE insertar_pupilaje()
 BEGIN
-    DECLARE i INT DEFAULT 1;
-    DECLARE cuidador_id INT;
-    DECLARE caballo_id INT;
-    DECLARE fecha_inicio DATE;
-    
-    WHILE i <= 500 DO
-        -- Seleccionar un cuidador aleatorio
-        SELECT ID_Empleado INTO cuidador_id
-        FROM Empleados
-        WHERE Tipo = 'Cuidador'
-        ORDER BY RAND()
-        LIMIT 1;
-        
-        -- Seleccionar un caballo aleatorio
-        SELECT ID_Caballo INTO caballo_id
-        FROM Caballos
-        ORDER BY RAND()
-        LIMIT 1;
-        
-        -- Generar fecha aleatoria
-        SET fecha_inicio = DATE_ADD('2020-01-01', INTERVAL FLOOR(RAND() * 1825) DAY);
-        
-        INSERT INTO Pupilaje (Cuidador_ID_Empleado, Caballos_ID_Caballo, Box, F_inicio, F_fin)
-        VALUES (
-            cuidador_id,
-            caballo_id,
-            FLOOR(RAND()*50 + 1),
-            fecha_inicio,
-            DATE_ADD(fecha_inicio, INTERVAL FLOOR(RAND()*6 + 1) MONTH)
-        );
-        
-        SET i = i + 1;
-    END WHILE;
-END //
+  DECLARE cnt INT DEFAULT 1;
+  DECLARE cuidador INT;
+  DECLARE caballo INT;
+  WHILE cnt <= 500 DO
+    SET cuidador = (SELECT ID_Empleado FROM Empleados WHERE Tipo='Cuidador' ORDER BY RAND() LIMIT 1);
+    SET caballo = (SELECT ID_Caballo FROM Caballos ORDER BY RAND() LIMIT 1);
+    SET @f_ini = DATE_ADD('2020-01-01', INTERVAL FLOOR(RAND()*1825) DAY);
+    INSERT INTO Pupilaje (Cuidador_ID_Empleado, Caballos_ID_Caballo, Box, F_inicio, F_fin)
+    VALUES (
+      cuidador,
+      caballo,
+      FLOOR(RAND()*50 + 1),
+      @f_ini,
+      DATE_ADD(@f_ini, INTERVAL FLOOR(RAND()*180+30) DAY)
+    );
+    SET cnt = cnt + 1;
+  END WHILE;
+END$$
 DELIMITER ;
+CALL insertar_pupilaje();
+DROP PROCEDURE insertar_pupilaje;
 
-CALL GenerarPupilajes();
-DROP PROCEDURE GenerarPupilajes;
+-- 10 Insertar métodos de pago (si no existen)
+INSERT IGNORE INTO Metodo_Pago (ID_Metodo, Metodo) VALUES (1, 'Efectivo'), (2, 'Tarjeta'), (3, 'Transferencia');
 
--- Cobros_clases
-DELIMITER //
-CREATE PROCEDURE GenerarCobrosClases()
+-- 11 Cobros_clases (solo IDs 1-3)
+INSERT INTO Cobros_clases (ID_Metodo, Monto, Fecha_Cobro, Estado, ID_Clase)
+SELECT 
+  FLOOR(RAND()*3 + 1),
+  FLOOR(RAND()*100 + 50),
+  DATE_ADD(F_inicio, INTERVAL FLOOR(RAND()*30) DAY),
+  IF(RAND() > 0.15, 'Pagado', 'Pendiente'),
+  ID_Clase
+FROM Clases;
+
+-- 12 Cobros_pupilaje (mismo rango)
+INSERT INTO Cobros_pupilaje (ID_Metodo, Monto, Fecha_Cobro, Estado, ID_Pupilaje)
+SELECT
+  FLOOR(RAND()*3 + 1),
+  FLOOR(RAND()*500 + 300),
+  DATE_ADD(F_inicio, INTERVAL FLOOR(RAND()*30) DAY),
+  IF(RAND() > 0.2, 'Pagado', 'Pendiente'),
+  ID_Pupilaje
+FROM Pupilaje;
+
+-- 13. Generar nóminas 2020-2025 (mensual para cada empleado)
+DELIMITER $$
+CREATE PROCEDURE insertar_nominas()
 BEGIN
-    DECLARE done INT DEFAULT FALSE;
-    DECLARE clase_id INT;
-    DECLARE fecha_inicio DATE;
-    DECLARE cur CURSOR FOR SELECT ID_Clase, F_inicio FROM Clases;
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-    
-    OPEN cur;
-    
-    read_loop: LOOP
-        FETCH cur INTO clase_id, fecha_inicio;
-        IF done THEN
-            LEAVE read_loop;
-        END IF;
-        
-        INSERT INTO Cobros_clases (ID_Metodo, Monto, Fecha_Cobro, Estado, ID_Clase)
-        VALUES (
-            FLOOR(RAND()*3 + 1),
-            FLOOR(RAND()*100 + 50),
-            DATE_ADD(fecha_inicio, INTERVAL FLOOR(RAND()*30) DAY),
-            CASE WHEN RAND() > 0.15 THEN 'Pagado' ELSE 'Pendiente' END,
-            clase_id
-        );
-    END LOOP;
-    
-    CLOSE cur;
-END //
+  DECLARE fecha DATE DEFAULT '2020-01-01';
+  WHILE fecha <= '2025-12-31' DO
+    INSERT INTO Nominas (ID_Empleado, Periodo_Inicio, Periodo_Fin, Monto, Fecha_Pago, Estado)
+    SELECT
+      ID_Empleado,
+      fecha,
+      LAST_DAY(fecha),
+      Salario,
+      LAST_DAY(fecha),
+      'Pagado'
+    FROM Empleados;
+    SET fecha = DATE_ADD(fecha, INTERVAL 1 MONTH);
+  END WHILE;
+END$$
 DELIMITER ;
-
-CALL GenerarCobrosClases();
-DROP PROCEDURE GenerarCobrosClases;
-
--- Cobros_pupilaje
-DELIMITER //
-CREATE PROCEDURE GenerarCobrosPupilaje()
-BEGIN
-    DECLARE done INT DEFAULT FALSE;
-    DECLARE pupilaje_id INT;
-    DECLARE fecha_inicio DATE;
-    DECLARE cur CURSOR FOR SELECT ID_Pupilaje, F_inicio FROM Pupilaje;
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-    
-    OPEN cur;
-    
-    read_loop: LOOP
-        FETCH cur INTO pupilaje_id, fecha_inicio;
-        IF done THEN
-            LEAVE read_loop;
-        END IF;
-        
-        INSERT INTO Cobros_pupilaje (ID_Metodo, Monto, Fecha_Cobro, Estado, ID_Pupilaje)
-        VALUES (
-            FLOOR(RAND()*3 + 1),
-            FLOOR(RAND()*500 + 300),
-            DATE_ADD(fecha_inicio, INTERVAL FLOOR(RAND()*30) DAY),
-            CASE WHEN RAND() > 0.2 THEN 'Pagado' ELSE 'Pendiente' END,
-            pupilaje_id
-        );
-    END LOOP;
-    
-    CLOSE cur;
-END //
-DELIMITER ;
-
-CALL GenerarCobrosPupilaje();
-DROP PROCEDURE GenerarCobrosPupilaje;
-
--- Generar nominas 2020-2025
-DELIMITER //
-CREATE PROCEDURE GenerarNominas()
-BEGIN
-    DECLARE fecha_inicio DATE DEFAULT '2020-01-01';
-    DECLARE fecha_fin DATE DEFAULT '2025-12-31';
-    DECLARE done INT DEFAULT FALSE;
-    DECLARE emp_id INT;
-    DECLARE emp_salario DECIMAL(10, 2);
-    DECLARE cur_fecha DATE;
-    DECLARE ultimo_dia DATE;
-    DECLARE cur CURSOR FOR SELECT ID_Empleado, Salario FROM Empleados;
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-    
-    SET cur_fecha = fecha_inicio;
-    
-    WHILE cur_fecha <= fecha_fin DO
-        SET ultimo_dia = LAST_DAY(cur_fecha);
-        
-        OPEN cur;
-        set done = FALSE;
-        
-        read_loop: LOOP
-            FETCH cur INTO emp_id, emp_salario;
-            IF done THEN
-                LEAVE read_loop;
-            END IF;
-            
-            INSERT INTO Nominas (ID_Empleado, Periodo_Inicio, Periodo_Fin, Monto, Fecha_Pago, Estado)
-            VALUES (
-                emp_id,
-                cur_fecha,
-                ultimo_dia,
-                emp_salario,
-                ultimo_dia,
-                'Pagado'
-            );
-        END LOOP;
-        
-        CLOSE cur;
-        
-        SET cur_fecha = DATE_ADD(cur_fecha, INTERVAL 1 MONTH);
-    END WHILE;
-END //
-DELIMITER ;
-
-CALL GenerarNominas();
-DROP PROCEDURE GenerarNominas;
+CALL insertar_nominas();
+DROP PROCEDURE insertar_nominas;
