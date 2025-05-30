@@ -1,0 +1,20 @@
+use lrc_hipica
+db.createCollection ("caballos")
+db.createCollection ("clientes")
+const clientesData = [
+  {dni: "12345678A", nombre: "Juan Pérez", tipo: "Propietario"},
+  {dni: "87654321B", nombre: "María López", tipo: "Estudiante"},
+  {dni: "11223344C", nombre: "Carlos Gómez", tipo: "Ambos"},
+  {dni: "55667788D", nombre: "Laura Ruiz", tipo: "Propietario"},
+  {dni: "99887766E", nombre: "Pedro Sánchez", tipo: "Estudiante"}
+];
+const resultadoClientes = db.clientes.insertMany(clientesData);
+const clientesIds = resultadoClientes.insertedIds;
+
+db.caballos.insertMany([
+    { nombre: "Relámpago", raza: "Pura Sangre", edad: 5 },
+    { nombre: "Trueno", raza: "Árabe", edad: 7},
+    { nombre: "Estrella", raza: "Andaluz", edad: 4, idCliente: clientesIds[2] },
+    { nombre: "Viento", raza: "Frisón", edad: 6, idCliente: clientesIds[3] },
+    { nombre: "Luna", raza: "Pura Raza Española", edad: 5, idCliente: clientesIds[4] }
+]);
